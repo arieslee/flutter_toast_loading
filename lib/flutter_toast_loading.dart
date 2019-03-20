@@ -16,8 +16,14 @@ class FlutterToastLoading extends StatelessWidget{
     //加载中动画
     final Widget indicator;
 
-    //加载动画的size
-    final Size indicatorSize;
+    //加载动画的线条的宽度
+    final double indicatorStrokeWidth;
+
+    //加载动画的默认值 如果为非null，则该进度指示器的值为0.0，对应于没有进度，1.0对应于所有进度。
+    final double indicatorValue;
+
+    //加载动画的颜色值
+    final Animation<Color> indicatorColor;
 
     //背景透明度
     final double backgroundColorAlpha;
@@ -40,8 +46,10 @@ class FlutterToastLoading extends StatelessWidget{
             @required this.loading,
             this.text,
             this.textStyle = const TextStyle(color: Colors.white, fontSize: 16.0),
-            this.indicatorSize = const Size(100.0, 20.0),
-            this.indicator, // DefaultProgressIndicator or CircularProgressIndicator or flutter_spinkit
+            this.indicatorStrokeWidth,
+            this.indicatorValue,
+            this.indicatorColor,
+            this.indicator, // CircularProgressIndicator or flutter_spinkit
             this.backgroundColor = Colors.black87,
             this.backgroundColorAlpha = 0.6,
             this.borderRadius = 4.0,
@@ -55,7 +63,11 @@ class FlutterToastLoading extends StatelessWidget{
     @override
     Widget build(BuildContext context) {
         List<Widget> _list = [child];
-        Widget progressIndicator = indicator ?? DefaultProgressIndicator(size: indicatorSize,);
+        Widget progressIndicator = indicator ?? CircularProgressIndicator(
+            strokeWidth: indicatorStrokeWidth,
+            value: indicatorValue,
+            valueColor: indicatorColor,
+        );
         if (loading) {
             Widget progress;
             if (text == null) {
@@ -99,113 +111,4 @@ class FlutterToastLoading extends StatelessWidget{
             children: _list,
         );
     }
-}
-
-// from https://github.com/While1true/flutter_refresh/blob/master/lib/Progress.dart
-class DefaultProgressIndicator extends StatefulWidget {
-    final Size size;
-    final Color color;
-    final int count;
-    final int milliseconds;
-
-    const DefaultProgressIndicator({
-        this.size,
-        this.milliseconds: 300,
-        this.color: Colors.green,
-        this.count: 4
-    });
-
-    @override
-    State<StatefulWidget> createState() => _DefaultProgressState();
-
-}
-
-class _DefaultProgressState extends State<DefaultProgressIndicator> with TickerProviderStateMixin {
-
-    List<Animation<double>> animators = [];
-    List<AnimationController> _animationControllers = [];
-    Size size;
-    @override
-    void initState() {
-        super.initState();
-        for (int i = 0; i < widget.count; i++) {
-
-            var animationController = AnimationController(vsync: this,
-                duration: Duration(milliseconds: widget.milliseconds * widget.count));
-            animationController.value=0.8*i/widget.count;
-            _animationControllers.add(animationController);
-            Animation<double> animation = Tween(begin: 0.1, end: 1.9).animate(
-                animationController);
-            animators.add(animation);
-        }
-        animators[0].addListener(_change);
-        try {
-            var mi = (widget.milliseconds~/(2*animators.length-2));
-            for (int i = 0; i < animators.length; i++) {
-                onDelay(_animationControllers[i], mi*i);
-            }
-        } on Exception {
-
-        }
-
-    }
-
-    void onDelay(AnimationController _animationControllers,
-        int delay) async{
-        Future.delayed(Duration(milliseconds: delay),(){
-            _animationControllers..repeat().orCancel;
-        });
-    }
-
-    void _change() {
-        setState(() {});
-    }
-
-    @override
-    Widget build(BuildContext context) {
-        size = widget.size ?? Size(100.0, 20.0);
-        return CustomPaint(
-            painter: _ProgressPainter(
-                animators: animators,
-                color: widget.color,
-                count: widget.count,
-            ),
-            size: size,
-        );
-    }
-
-    @override
-    void dispose() {
-        super.dispose();
-        animators[0].removeListener(_change);
-        _animationControllers[0].dispose();
-    }
-}
-
-class _ProgressPainter extends CustomPainter {
-    final Color color;
-    final int count;
-    final List<Animation<double>>animators;
-
-    const _ProgressPainter({this.animators, this.color, this.count});
-
-    @override
-    void paint(Canvas canvas, Size size) {
-        var radius = size.width / (3 * count + 1);
-        var paint = Paint()
-            ..color = color
-            ..style = PaintingStyle.fill;
-        for (int i = 1; i < count + 1; i++) {
-            double value = animators[i - 1].value;
-            canvas.drawCircle(
-                Offset(radius * i * 3 - radius, size.height / 2),
-                radius * (value > 1 ? (2 - value) : value), paint);
-        }
-    }
-
-    @override
-    bool shouldRepaint(CustomPainter oldDelegate) {
-        return oldDelegate != this;
-    }
-
 }
